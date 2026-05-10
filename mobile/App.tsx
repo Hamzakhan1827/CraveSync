@@ -10,6 +10,7 @@ import { BiteSyncLogo, BiteSyncMark } from './BiteSyncLogo';
 import { Session } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import { validatePasswordStrength, RateLimiter, validateEmail, validateUsername as validateUsernameUtil } from './lib/authUtils';
 
 // --- CONSTANTS & HELPERS ---
 const FOOD_PLACEHOLDER = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80';
@@ -140,6 +141,9 @@ export default function App() {
 
   const AVATAR_EMOJIS = ['🧑‍🍳', '🦊', '🐼', '🐨', '🐸', '🦁', '🐻', '🐙'];
 
+  // Rate limiter for authentication attempts
+  const authRateLimiter = useRef(new RateLimiter('bitesync_auth_attempts', 5, 900000)).current;
+
   const getAvatarIndex = (name: string) => {
     // Deterministic hash based on name
     let hash = 0;
@@ -167,11 +171,9 @@ export default function App() {
     setTimeout(() => { setCurrentTab(tab); setSelectedRestaurant(null); setDetailItem(null); setHomeView('landing'); }, 250);
   };
 
-  const validateUsername = (u: string) => {
-    if (u.length < 3) return 'Username must be at least 3 characters';
-    if (!/[a-zA-Z]/.test(u)) return 'Username must contain at least one letter';
-    if (/^[0-9]+$/.test(u)) return 'Username cannot be only numbers';
-    return null;
+  const validateUsername = (u: string): string | null => {
+    const result = validateUsernameUtil(u);
+    return result.isValid ? null : result.error || 'Invalid username';
   };
 
   // --- EFFECTS ---
@@ -189,13 +191,21 @@ export default function App() {
     if (homeView !== 'search' || searchQuery.length < 2) { setMenuSearchResults([]); return; }
     const timer = setTimeout(async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('menu_items')
           .select('id, name, price, image_url, menu_categories!inner(id, name, restaurant_id, restaurants(id, name))')
           .ilike('name', `%${searchQuery}%`)
           .limit(8);
+        if (error) {
+          console.error('Search error:', error);
+          setMenuSearchResults([]);
+          return;
+        }
         setMenuSearchResults(data || []);
-      } catch { setMenuSearchResults([]); }
+      } catch (err) {
+        console.error('Unexpected search error:', err);
+        setMenuSearchResults([]);
+      }
     }, 350);
     return () => clearTimeout(timer);
   }, [searchQuery, homeView]);
@@ -353,26 +363,42 @@ export default function App() {
 
   const fetchFavourites = async (userId: string) => {
     try {
-      const { data } = await supabase.from('favourites').select('restaurant_id').eq('user_id', userId);
+      const { data, error } = await supabase.from('favourites').select('restaurant_id').eq('user_id', userId);
+      if (error) {
+        console.error('Error fetching favourites:', error);
+        return;
+      }
       setFavourites((data || []).map((f: any) => f.restaurant_id));
-    } catch { }
+    } catch (err) {
+      console.error('Unexpected error in fetchFavourites:', err);
+    }
   };
 
   const fetchLikedItems = async (userId: string) => {
     try {
-      const { data } = await supabase.from('liked_items').select('menu_item_id').eq('user_id', userId);
+      const { data, error } = await supabase.from('liked_items').select('menu_item_id').eq('user_id', userId);
+      if (error) {
+        console.error('Error fetching liked items:', error);
+        return;
+      }
       const ids = (data || []).map((l: any) => l.menu_item_id);
       setLikedItems(ids);
       if (ids.length > 0) {
-        const { data: items } = await supabase
+        const { data: items, error: itemsError } = await supabase
           .from('menu_items')
           .select('id, name, price, image_url, menu_categories!inner(id, name, restaurant_id, restaurants(id, name))')
           .in('id', ids);
+        if (itemsError) {
+          console.error('Error fetching liked item details:', itemsError);
+          return;
+        }
         setLikedItemDetails(items || []);
       } else {
         setLikedItemDetails([]);
       }
-    } catch { }
+    } catch (err) {
+      console.error('Unexpected error in fetchLikedItems:', err);
+    }
   };
 
   const toggleLikedItem = async (itemId: string) => {
@@ -515,28 +541,70 @@ export default function App() {
     setAuthLoading(true);
     setAuthError('');
     try {
-      if (!email.includes('@') || email.length < 5) throw new Error('Invalid email format');
-      if (password.length < 6) throw new Error('Password must be at least 6 characters');
+      // Rate limit authentication attempts
+      const isAllowed = await authRateLimiter.isAllowed();
+      if (!isAllowed) {
+        const remaining = await authRateLimiter.getRemainingAttempts();
+        throw new Error(`Too many attempts. Please try again in 15 minutes. (${remaining} remaining)`);
+      }
+
+      // Validate email
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.isValid) {
+        throw new Error(emailValidation.error);
+      }
+
+      // Validate password strength
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
+        throw new Error(passwordValidation.errors[0] || 'Password does not meet security requirements');
+      }
+
       if (signUp) {
+        // Validate username
         const usernameErr = validateUsername(username);
         if (usernameErr) throw new Error(usernameErr);
-        const { error } = await supabase.auth.signUp({ email, password, options: { data: { username: username.trim() } } });
-        if (error) throw error;
+
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { username: username.trim() } }
+        });
+
+        if (error) {
+          if (error.message.includes('already registered')) {
+            throw new Error('This email is already registered. Please sign in instead.');
+          }
+          throw new Error(error.message || 'Sign up failed. Please try again.');
+        }
+
         setProfileUsername(username.trim());
         setShowWelcome(true);
         setTimeout(() => setShowWelcome(false), 3000);
+        // Reset rate limiter on successful signup
+        await authRateLimiter.reset();
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
+
         if (error) {
-          if (error.message.includes('Invalid login')) throw new Error('Incorrect email or password');
-          throw error;
+          if (error.message.includes('Invalid login') || error.message.includes('invalid')) {
+            throw new Error('Incorrect email or password');
+          }
+          throw new Error(error.message || 'Sign in failed. Please try again.');
         }
+
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.user_metadata?.username) setProfileUsername(user.user_metadata.username);
         if (user?.user_metadata?.username_last_changed) setUsernameLastChanged(new Date(user.user_metadata.username_last_changed));
+        // Reset rate limiter on successful signin
+        await authRateLimiter.reset();
       }
-    } catch (error: any) { setAuthError(error.message); }
-    finally { setAuthLoading(false); }
+    } catch (error: any) {
+      console.error('Auth error:', error.message);
+      setAuthError(error.message || 'Authentication failed. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   const saveUsername = async () => {

@@ -75,3 +75,9 @@ android/build/
 # iOS build output
 ios/build/
 ios/Pods/
+
+# IDE / emulator binaries (too large for GitHub)
+emulator/
+
+# Archive files
+bitesync.zip

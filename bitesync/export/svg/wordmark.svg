@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 296 64" fill="none">
+  <path d="M4 6h22a14 14 0 0 1 9 24.6A15 15 0 0 1 28 56H4V6Zm10 9v12h12a6 6 0 0 0 0-12H14Zm0 21v15h14a7.5 7.5 0 0 0 0-15H14Z" fill="#ffffff"></path>
+  <circle cx="48" cy="6" r="7" fill="#10b981"></circle>
+  <text x="58" y="46" font-family="Inter, &#39;Helvetica Neue&#39;, system-ui, sans-serif" font-weight="700" font-size="44" letter-spacing="-1.2" fill="#ffffff">ite</text>
+  <text x="123" y="46" font-family="Inter, &#39;Helvetica Neue&#39;, system-ui, sans-serif" font-weight="700" font-size="44" letter-spacing="-1.2" fill="#10b981">Sync</text>
+</svg>
