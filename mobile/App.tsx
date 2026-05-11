@@ -489,7 +489,8 @@ export default function App() {
     try {
       const ext = localUri.split('.').pop()?.split('?')[0]?.toLowerCase() || 'jpg';
       const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
-      const filename = `${session!.user.id}-${Date.now()}.${ext}`;
+      // Path must be {uid}/{filename} to satisfy owner-scoped storage RLS policy
+      const filename = `${session!.user.id}/${Date.now()}.${ext}`;
 
       // Convert local URI to Blob for Supabase upload (Robust method)
       const blob: any = await new Promise((resolve, reject) => {
@@ -654,7 +655,6 @@ export default function App() {
       return;
     }
     setSubmitting(true);
-    console.log('Submitting review...');
     try {
       let photoUrl: string | null = null;
       if (reviewImage) {
