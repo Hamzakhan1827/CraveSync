@@ -79,5 +79,21 @@ ios/Pods/
 # IDE / emulator binaries (too large for GitHub)
 emulator/
 
-# Archive files
-bitesync.zip
+# Archive & asset files (keep out of git)
+*.zip
+*.rar
+*.tar.gz
+temp_*/
+temp/
+
+# Scratch / one-off scripts
+scratch_*.js
+scratch_*.ts
+
+# Loose image dumps at root
+*.jpg
+*.jpeg
+*.png
+ideogram-*.jpg
+image*.png
+logo.png
