@@ -43,7 +43,7 @@ function RatingBadge({ rating }: { rating: boolean | null }) {
 
 function DetailPanel({ review, onClose }: { review: Review; onClose: () => void }) {
   const itemName = review.menu_items?.name || "Unknown Item";
-  const dinerName = review.users?.full_name || "Anonymous Diner";
+  const dinerName = review.users?.full_name || "Deleted User";
   const date = new Date(review.created_at);
 
   return (
@@ -306,7 +306,7 @@ export function FeedbackManager({ reviews }: { reviews: Review[] }) {
                 {isExpanded && (
                   <div className="p-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2 fade-in duration-200 space-y-3">
                     {itemReviews.map((review) => {
-                      const dinerName = review.users?.full_name || "Anonymous Diner";
+                      const dinerName = review.users?.full_name || "Deleted User";
                       const date = new Date(review.created_at);
                       return (
                         <button

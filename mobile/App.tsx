@@ -121,6 +121,7 @@ export default function App() {
   const [profileUsername, setProfileUsername] = useState('');
   const [profileAvatar, setProfileAvatar] = useState(0);
   const [editingUsername, setEditingUsername] = useState(false);
+  const [savingUsername, setSavingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [usernameLastChanged, setUsernameLastChanged] = useState<Date | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -143,13 +144,13 @@ export default function App() {
 
   const AVATAR_EMOJIS = ['🧑‍🍳', '🦊', '🐼', '🐨', '🐸', '🦁', '🐻', '🐙'];
 
-  // Rate limiter for authentication attempts
-  const authRateLimiter = useRef(new RateLimiter('bitesync_auth_attempts', 5, 900000)).current;
+  // Rate limiter for authentication attempts (5 minutes = 300000ms)
+  const authRateLimiter = useRef(new RateLimiter('bitesync_auth_attempts', 5, 300000)).current;
 
   const getAvatarIndex = (name: string) => {
     // Deterministic hash based on name
     let hash = 0;
-    const n = name || 'Anonymous';
+    const n = name || 'Deleted User';
     for (let i = 0; i < n.length; i++) hash = n.charCodeAt(i) + ((hash << 5) - hash);
     return Math.abs(hash) % AVATAR_EMOJIS.length;
   };
@@ -559,6 +560,24 @@ export default function App() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setAuthError('Please enter your email to reset password.');
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      Alert.alert('Reset Email Sent', 'Check your inbox for password reset instructions.');
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to send reset email.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleAuth = async (signUp: boolean) => {
     setAuthLoading(true);
     setAuthError('');
@@ -566,8 +585,7 @@ export default function App() {
       // Rate limit authentication attempts
       const isAllowed = await authRateLimiter.isAllowed();
       if (!isAllowed) {
-        const remaining = await authRateLimiter.getRemainingAttempts();
-        throw new Error(`Too many attempts. Please try again in 15 minutes. (${remaining} remaining)`);
+        throw new Error(`Too many attempts. Please try again in 5 minutes.`);
       }
 
       // Validate email
@@ -630,9 +648,11 @@ export default function App() {
   };
 
   const saveUsername = async () => {
+    if (savingUsername) return;
     const err = validateUsername(newUsername);
     if (err) { Alert.alert('Invalid Username', err); return; }
     if (!canEditUsername()) { Alert.alert('Too Soon', 'You can only change your username once every 30 days.'); return; }
+    setSavingUsername(true);
     try {
       const now = new Date();
       const { error } = await supabase.auth.updateUser({ data: { username: newUsername.trim(), username_last_changed: now.toISOString() } });
@@ -641,6 +661,7 @@ export default function App() {
       setUsernameLastChanged(now);
       setEditingUsername(false);
     } catch (err: any) { Alert.alert('Error', err.message); }
+    finally { setSavingUsername(false); }
   };
 
   const closeModal = () => {
@@ -862,35 +883,42 @@ export default function App() {
     return (
       <SafeAreaView style={styles.container}>
         <ExpoStatusBar style="dark" backgroundColor="#F8F9FA" translucent={false} />
-        <View style={styles.authContainer}>
-          <View style={{ alignSelf: 'center', marginBottom: 16 }}>
-            <BiteSyncLogo size={32} textColor="#0b1220" />
-          </View>
-          <Text style={styles.authSubtitle}>Your personal food memory, every bite.</Text>
-          {authError ? <Text style={{ color: '#ef4444', marginBottom: 8, fontSize: 13, fontWeight: '600', marginLeft: 4 }}>{authError}</Text> : null}
-          {isSignUp && (
-            <TextInput style={[styles.textInput, { marginBottom: 12 }]} placeholder="Username (e.g. hamza_eats)" placeholderTextColor="#888"
-              value={username} onChangeText={t => { setUsername(t); setAuthError(''); }} autoCapitalize="none" />
-          )}
-          <TextInput style={[styles.textInput, { marginBottom: 12 }]} placeholder="Email address" placeholderTextColor="#888"
-            value={email} onChangeText={t => { setEmail(t); setAuthError(''); }} autoCapitalize="none" keyboardType="email-address" />
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: 14, borderWidth: 1, borderColor: '#EAEAEA', paddingRight: 16 }}>
-            <TextInput style={{ flex: 1, color: '#111', fontSize: 16, padding: 15 }} placeholder="Password" placeholderTextColor="#888"
-              value={password} onChangeText={t => { setPassword(t); setAuthError(''); }} secureTextEntry={!showPassword} />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              {showPassword ? <EyeOff color="#888" size={20} /> : <Eye color="#888" size={20} />}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 28 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <View style={{ alignSelf: 'center', marginBottom: 16 }}>
+              <BiteSyncLogo size={32} textColor="#0b1220" />
+            </View>
+            <Text style={styles.authSubtitle}>Your personal food memory, every bite.</Text>
+            {authError ? <Text style={{ color: '#ef4444', marginBottom: 8, fontSize: 13, fontWeight: '600', marginLeft: 4 }}>{authError}</Text> : null}
+            {isSignUp && (
+              <TextInput style={[styles.textInput, { marginBottom: 12 }]} placeholder="Username (e.g. hamza_eats)" placeholderTextColor="#888"
+                value={username} onChangeText={t => { setUsername(t); setAuthError(''); }} autoCapitalize="none" />
+            )}
+            <TextInput style={[styles.textInput, { marginBottom: 12 }]} placeholder="Email address" placeholderTextColor="#888"
+              value={email} onChangeText={t => { setEmail(t); setAuthError(''); }} autoCapitalize="none" keyboardType="email-address" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: 14, borderWidth: 1, borderColor: '#EAEAEA', paddingRight: 16 }}>
+              <TextInput style={{ flex: 1, color: '#111', fontSize: 16, padding: 15 }} placeholder="Password" placeholderTextColor="#888"
+                value={password} onChangeText={t => { setPassword(t); setAuthError(''); }} secureTextEntry={!showPassword} />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff color="#888" size={20} /> : <Eye color="#888" size={20} />}
+              </TouchableOpacity>
+            </View>
+            {!isSignUp && (
+              <TouchableOpacity onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginTop: 12 }} disabled={authLoading}>
+                <Text style={{ color: authLoading ? '#888' : '#00A86B', fontSize: 14, fontWeight: '600' }}>Forgot password?</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[styles.submitButton, { marginTop: 20 }]} onPress={() => handleAuth(isSignUp)} disabled={authLoading}>
+              {authLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>}
             </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={[styles.submitButton, { marginTop: 20 }]} onPress={() => handleAuth(isSignUp)} disabled={authLoading}>
-            {authLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity style={{ marginTop: 24, padding: 10 }} onPress={() => { setIsSignUp(!isSignUp); setAuthError(''); setUsername(''); }} disabled={authLoading}>
-            <Text style={{ color: '#666', textAlign: 'center', fontSize: 14 }}>
-              {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-              <Text style={{ color: '#00A86B', fontWeight: '700' }}>{isSignUp ? 'Sign In' : 'Create an account'}</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity style={{ marginTop: 24, padding: 10 }} onPress={() => { setIsSignUp(!isSignUp); setAuthError(''); setUsername(''); }} disabled={authLoading}>
+              <Text style={{ color: '#666', textAlign: 'center', fontSize: 14 }}>
+                {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+                <Text style={{ color: '#00A86B', fontWeight: '700' }}>{isSignUp ? 'Sign In' : 'Create an account'}</Text>
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -1154,7 +1182,7 @@ export default function App() {
                             <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#DCFCE7' }}>
                               <Text style={{ fontSize: 17 }}>{AVATAR_EMOJIS[r.users?.avatar_url && !isNaN(parseInt(r.users.avatar_url)) ? parseInt(r.users.avatar_url) : getAvatarIndex(r.users?.full_name)]}</Text>
                             </View>
-                            <Text style={{ color: '#1A1A1A', fontWeight: '700', fontSize: 15 }}>{r.users?.full_name || 'Anonymous Diner'}</Text>
+                            <Text style={{ color: '#1A1A1A', fontWeight: '700', fontSize: 15 }}>{r.users?.full_name || 'Deleted User'}</Text>
                             {r.rating_thumbs === true ? <ThumbsUp color="#10b981" size={14} /> : r.rating_thumbs === false ? <ThumbsDown color="#ef4444" size={14} /> : null}
                           </View>
                           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
@@ -1410,8 +1438,8 @@ export default function App() {
               ) : (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, width: '80%' }}>
                   <TextInput style={[styles.textInput, { flex: 1, padding: 10, fontSize: 15 }]} value={newUsername} onChangeText={setNewUsername} autoFocus autoCapitalize="none" />
-                  <TouchableOpacity onPress={saveUsername} style={{ backgroundColor: '#00A86B', padding: 10, borderRadius: 10 }}>
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Save</Text>
+                  <TouchableOpacity onPress={saveUsername} style={{ backgroundColor: '#00A86B', padding: 10, borderRadius: 10 }} disabled={savingUsername}>
+                    {savingUsername ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Save</Text>}
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => setEditingUsername(false)}><X color="#888" size={20} /></TouchableOpacity>
                 </View>
@@ -1690,6 +1718,7 @@ export default function App() {
                   value={publicNote}
                   onChangeText={setPublicNote}
                   multiline
+                  maxLength={500}
                 />
               </View>
 
@@ -1706,6 +1735,7 @@ export default function App() {
                   value={privateNote}
                   onChangeText={setPrivateNote}
                   multiline
+                  maxLength={1000}
                 />
               </View>
 
@@ -1802,7 +1832,7 @@ export default function App() {
 
       {/* SIDEBAR DRAWER */}
       {sidebarOpen && (
-        <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 200 }} activeOpacity={1} onPress={closeSidebar}>
+        <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 200, elevation: 100 }} activeOpacity={1} onPress={closeSidebar}>
           <Animated.View style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 290, backgroundColor: '#FAFAFA', zIndex: 201, transform: [{ translateX: sidebarAnim }], shadowColor: '#000', shadowOffset: { width: 10, height: 0 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 25, borderTopRightRadius: 30, borderBottomRightRadius: 30, overflow: 'hidden' }}>
             <View style={{ backgroundColor: '#00A86B', paddingTop: Platform.OS === 'web' ? 30 : 50, paddingBottom: 24, paddingHorizontal: 24, borderBottomLeftRadius: 30 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>

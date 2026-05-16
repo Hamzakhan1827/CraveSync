@@ -316,7 +316,7 @@ export default async function DashboardPage() {
                 {allReviews.slice(0, 6).map((r: any) => {
                   const user = r.users as { full_name: string | null; email: string | null } | null;
                   const item = r.menu_items as { id: string; name: string } | null;
-                  const dinerName = user?.full_name || "Anonymous Diner";
+                  const dinerName = user?.full_name || "Deleted User";
                   return (
                     <Link
                       key={r.id}

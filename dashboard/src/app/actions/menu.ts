@@ -21,7 +21,7 @@ export async function getItemStats(itemId: string) {
     .slice(0, 6)
     .map(r => ({
       note: r.public_note!,
-      name: (r.users as any)?.full_name || 'Anonymous',
+      name: (r.users as any)?.full_name || 'Deleted User',
       rating: r.rating_thumbs,
       date: r.created_at,
     }))

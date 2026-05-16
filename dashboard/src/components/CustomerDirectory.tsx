@@ -66,7 +66,7 @@ function DetailPanel({ customer, onClose }: { customer: Customer; onClose: () =>
                 {getInitial(customer.full_name, customer.email)}
               </div>
               <div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">{customer.full_name || "Anonymous Diner"}</h2>
+                <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">{customer.full_name || "Deleted User"}</h2>
                 {customer.email && (
                   <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
                     <Mail className="w-3.5 h-3.5" /> {customer.email}
@@ -237,7 +237,7 @@ export function CustomerDirectory({ customers }: { customers: Customer[] }) {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{customer.full_name || "Anonymous"}</p>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{customer.full_name || "Deleted User"}</p>
                           {badge && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>}
                         </div>
                         <p className="text-xs text-slate-400 mt-0.5">{customer.email || customer.phone_number || "—"}</p>
