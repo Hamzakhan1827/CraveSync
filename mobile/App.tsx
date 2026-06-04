@@ -393,7 +393,7 @@ export default function App() {
       const { data: items } = await supabase.from('menu_items').select('id, category_id').in('category_id', catIds);
       if (!items?.length) return;
       const itemIds = items.map((it: any) => it.id);
-      const { data: revs } = await supabase.from('reviews').select('menu_item_id, rating_thumbs').in('menu_item_id', itemIds).not('rating_thumbs', 'is', null).limit(1000);
+      const { data: revs } = await supabase.from('reviews_public').select('menu_item_id, rating_thumbs').in('menu_item_id', itemIds).not('rating_thumbs', 'is', null).limit(1000);
       const catToRest: Record<string, string> = {};
       cats.forEach((c: any) => { catToRest[c.id] = c.restaurant_id; });
       const itemToRest: Record<string, string> = {};
@@ -434,7 +434,7 @@ export default function App() {
       const items = data || [];
 
       const statsPromise = items.length > 0
-        ? supabase.from('reviews').select('menu_item_id, rating_thumbs').in('menu_item_id', items.map((it: any) => it.id)).not('rating_thumbs', 'is', null).limit(2000)
+        ? supabase.from('reviews_public').select('menu_item_id, rating_thumbs').in('menu_item_id', items.map((it: any) => it.id)).not('rating_thumbs', 'is', null).limit(2000)
         : Promise.resolve({ data: [] });
 
       const { data: reviews } = await statsPromise;
@@ -552,7 +552,7 @@ export default function App() {
 
   const fetchTrending = async () => {
     try {
-      const { data: revs } = await supabase.from('reviews').select('menu_item_id, rating_thumbs').not('rating_thumbs', 'is', null).order('created_at', { ascending: false }).limit(600);
+      const { data: revs } = await supabase.from('reviews_public').select('menu_item_id, rating_thumbs').not('rating_thumbs', 'is', null).order('created_at', { ascending: false }).limit(600);
       if (!revs?.length) return;
       const agg: Record<string, { up: number; total: number }> = {};
       revs.forEach((r: any) => {
@@ -991,8 +991,8 @@ export default function App() {
     setLoadingMoreReviews(true);
     try {
       const [countResult, dataResult] = await Promise.all([
-        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('menu_item_id', itemId).neq('public_note', ''),
-        supabase.from('reviews').select('id, rating_thumbs, public_note, photo_url, created_at, user_id, owner_reply, users(full_name, username, avatar_url)').eq('menu_item_id', itemId).neq('public_note', '').order('created_at', { ascending: false }).range(offset, offset + 2),
+        supabase.from('reviews_public').select('id', { count: 'exact', head: true }).eq('menu_item_id', itemId).neq('public_note', ''),
+        supabase.from('reviews_public').select('id, rating_thumbs, public_note, photo_url, created_at, user_id, owner_reply, users(full_name, username, avatar_url)').eq('menu_item_id', itemId).neq('public_note', '').order('created_at', { ascending: false }).range(offset, offset + 2),
       ]);
       setReviewTotal(countResult.count || 0);
       if (append) { setItemReviews(prev => [...prev, ...(dataResult.data || [])]); }
