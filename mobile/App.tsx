@@ -1021,7 +1021,7 @@ export default function App() {
         <ExpoStatusBar style="light" backgroundColor="#0b1220" translucent={false} />
         <CraveSyncMark size={110} tileColor="#0b1220" accent="#00A86B" />
         <Text style={{ color: '#ffffff', fontSize: 34, fontWeight: '800', marginTop: 24, letterSpacing: -0.5 }}>
-          Bite<Text style={{ color: '#00A86B' }}>Sync</Text>
+          Crave<Text style={{ color: '#00A86B' }}>Sync</Text>
         </Text>
         <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 14, marginTop: 8, fontWeight: '500', letterSpacing: 0.3 }}>
           Your personal food memory

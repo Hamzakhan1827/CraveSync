@@ -52,7 +52,7 @@ export async function Sidebar() {
         {/* Logo area — mark stays fixed at left, text slides in beside it */}
         <div className="h-16 flex items-center shrink-0 border-b border-slate-200/50 dark:border-slate-800/50 pl-[17px]">
           <Link href="/" className="flex items-center gap-[10px] min-w-max">
-            <CraveSyncMark size={30} className="shrink-0" />
+            <CraveSyncMark size={38} className="shrink-0" />
             <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100 whitespace-nowrap font-bold tracking-tight text-slate-900 dark:text-slate-200" style={{ fontSize: 24, letterSpacing: '-0.02em' }}>
               Crave<span className="text-emerald-500 dark:text-emerald-400">Sync</span>
             </span>

@@ -1,4 +1,4 @@
-import { Utensils } from 'lucide-react'
+import { CraveSyncMark } from '@/components/CraveSyncLogo'
 import LoginForm from './LoginForm'
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -8,9 +8,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
         <div className="p-8">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center">
-              <Utensils className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
-            </div>
+            <CraveSyncMark size={64} />
           </div>
 
           <h2 className="text-2xl font-bold text-center text-slate-900 dark:text-slate-100 mb-2">CraveSync Admin</h2>
