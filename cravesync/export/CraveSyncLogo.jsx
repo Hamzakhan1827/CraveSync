@@ -1,8 +1,6 @@
 // CraveSyncLogo.jsx — drop-in React component for the CraveSync mark + wordmark.
 // No deps. Tailwind-friendly. SSR-safe. Backgrounds are transparent.
-//
-// Mark: "Sculpted B" — rounded tile, geometric B, fork on the upper-left edge,
-// a spoon-curl tucked into the upper bowl. The B is the hero.
+// Mark: "Emblem badge" — solid emerald circle, white crossed fork & knife.
 //
 // Usage:
 //   import { CraveSyncLogo, CraveSyncMark, CraveSyncWordmark } from './CraveSyncLogo';
@@ -12,22 +10,13 @@
 //
 // Theme:
 //   <CraveSyncLogo accent="#10b981" textColor="#ffffff" tileColor="#0b1220" />
-//   On a light surface:  textColor="#0b1220"  (tile stays dark)
+//   On a light surface:  textColor="#0b1220"
 
 import React from 'react';
 
 const ACCENT = '#10b981';
 const INK = '#0b1220';
 
-/**
- * Sculpted-B icon mark.
- *
- * @param {object} props
- * @param {number|string} [props.size=32]      pixel size (square)
- * @param {string} [props.tileColor='#0b1220'] rounded tile fill
- * @param {string} [props.accent='#10b981']    B + fork + spoon color
- * @param {string} [props.className]
- */
 export function CraveSyncMark({
   size = 32,
   tileColor = INK,
@@ -46,35 +35,23 @@ export function CraveSyncMark({
       className={className}
       {...rest}
     >
-      <rect x="4" y="4" width="88" height="88" rx="22" fill={tileColor} />
-      {/* B silhouette + counters via even-odd */}
-      <path
-        fillRule="evenodd"
-        d="M42 14h18c9 0 16 6 16 14 0 6-3 11-8 13 6 2 10 7 10 14 0 9-7 17-17 17H42V14Zm8 9v18h11c5 0 9-3 9-9s-4-9-9-9H50Zm0 27v22h13c6 0 10-4 10-11s-4-11-10-11H50Z"
-        fill={accent}
-      />
-      {/* spoon curl in upper counter */}
-      <path
-        d="M55 27c5-1 10 2 10 6 0 3-2 6-5 7"
-        stroke={accent}
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* fork on left, slightly overlapping B */}
-      <g fill={accent}>
-        <rect x="22" y="11" width="2.6" height="13" rx="1.2" />
-        <rect x="28" y="11" width="2.6" height="13" rx="1.2" />
-        <rect x="34" y="11" width="2.6" height="13" rx="1.2" />
-        <path d="M20 24h20v3c0 5-3 9-7 10v33a3 3 0 1 1-6 0V37c-4-1-7-5-7-10v-3Z" />
+      <circle cx="48" cy="48" r="44" fill={accent} />
+      {/* Fork */}
+      <g fill="white">
+        <rect x="22" y="14" width="2.8" height="14" rx="1.2" />
+        <rect x="28.6" y="14" width="2.8" height="14" rx="1.2" />
+        <rect x="35.2" y="14" width="2.8" height="14" rx="1.2" />
+        <path d="M20 28h20v3c0 5-3 8-7 9v27a3 3 0 0 1-6 0V40c-4-1-7-4-7-9v-3z" />
+      </g>
+      {/* Knife */}
+      <g fill="white">
+        <path d="M58 14c0 0 9 7 9 17H58V14z" />
+        <rect x="55.5" y="31" width="6" height="37" rx="3" />
       </g>
     </svg>
   );
 }
 
-/**
- * Horizontal lockup: mark + "CraveSync" text. Use in headers, footers, decks.
- */
 export function CraveSyncLogo({
   size = 28,
   accent = ACCENT,
@@ -106,16 +83,12 @@ export function CraveSyncLogo({
           color: textColor,
         }}
       >
-        Bite<span style={{ color: accent }}>Sync</span>
+        Crave<span style={{ color: accent }}>Sync</span>
       </span>
     </span>
   );
 }
 
-/**
- * Pure-SVG wordmark — sculpted B leads, then "iteSync" set in Inter.
- * No tile behind the B, so it sits inline cleanly with text.
- */
 export function CraveSyncWordmark({
   height = 32,
   accent = ACCENT,
@@ -125,7 +98,7 @@ export function CraveSyncWordmark({
 }) {
   return (
     <svg
-      viewBox="0 0 296 64"
+      viewBox="0 0 320 64"
       height={height}
       fill="none"
       role="img"
@@ -133,29 +106,23 @@ export function CraveSyncWordmark({
       className={className}
       {...rest}
     >
-      {/* fork */}
-      <g fill={accent}>
-        <rect x="0" y="0" width="2.4" height="11" rx="1" />
-        <rect x="6" y="0" width="2.4" height="11" rx="1" />
-        <rect x="12" y="0" width="2.4" height="11" rx="1" />
-        <path d="M-2 11h18v2c0 4-3 7-6 8v28a3 3 0 1 1-6 0V21c-3-1-6-4-6-8v-2Z" />
+      {/* Emblem badge mark scaled to 64×64 */}
+      <g transform="scale(0.667)">
+        <circle cx="48" cy="48" r="44" fill={accent} />
+        <g fill="white">
+          <rect x="22" y="14" width="2.8" height="14" rx="1.2" />
+          <rect x="28.6" y="14" width="2.8" height="14" rx="1.2" />
+          <rect x="35.2" y="14" width="2.8" height="14" rx="1.2" />
+          <path d="M20 28h20v3c0 5-3 8-7 9v27a3 3 0 0 1-6 0V40c-4-1-7-4-7-9v-3z" />
+        </g>
+        <g fill="white">
+          <path d="M58 14c0 0 9 7 9 17H58V14z" />
+          <rect x="55.5" y="31" width="6" height="37" rx="3" />
+        </g>
       </g>
-      {/* B */}
-      <path
-        fillRule="evenodd"
-        d="M22 4h14c7 0 12 4 12 11 0 5-2 8-6 10 5 1 8 5 8 11 0 7-5 13-13 13H22V4Zm6 7v14h9c4 0 7-2 7-7s-3-7-7-7h-9Zm0 21v17h10c5 0 8-3 8-8.5s-3-8.5-8-8.5H28Z"
-        fill={textColor}
-      />
-      {/* spoon curl */}
-      <path
-        d="M30 14c4-1 8 2 8 5 0 2-2 5-4 5"
-        stroke={textColor}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        fill="none"
-      />
+      {/* Wordmark text */}
       <text
-        x="58"
+        x="76"
         y="46"
         fontFamily='Inter, "Helvetica Neue", system-ui, sans-serif'
         fontWeight="700"
@@ -163,10 +130,10 @@ export function CraveSyncWordmark({
         letterSpacing="-1.2"
         fill={textColor}
       >
-        ite
+        Crave
       </text>
       <text
-        x="123"
+        x="216"
         y="46"
         fontFamily='Inter, "Helvetica Neue", system-ui, sans-serif'
         fontWeight="700"
