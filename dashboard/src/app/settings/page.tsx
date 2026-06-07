@@ -1,23 +1,49 @@
 import { Header } from '@/components/Header'
-import { createClient } from '@/utils/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { RestaurantProfileEditor } from '@/components/RestaurantProfileEditor'
 import { FollowupPolicyEditor } from '@/components/FollowupPolicyEditor'
 import { CampaignSettings } from '@/components/CampaignSettings'
 import { AccountSettings } from '@/components/AccountSettings'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
+import { unstable_cache } from 'next/cache'
+
+const getCachedUserProfile = unstable_cache(
+  async (userId: string) => {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('managed_restaurant_id, is_super_admin')
+      .eq('id', userId)
+      .single()
+    if (error) throw error
+    return data
+  },
+  ['user-profile'],
+  { revalidate: 60, tags: ['profile'] }
+)
+
+const getCachedRestaurantSettings = unstable_cache(
+  async (restaurantId: string) => {
+    const { data, error } = await supabaseAdmin
+      .from('restaurants')
+      .select('id, name, address, cuisine_type, opening_hours, logo_url, followup_enabled, followup_policy, followup_discount_percent, followup_custom_template, recovery_emails_enabled, winback_emails_enabled')
+      .eq('id', restaurantId)
+      .single()
+    if (error) throw error
+    return data
+  },
+  ['restaurant-settings'],
+  { revalidate: 300, tags: ['settings'] }
+)
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const headerList = await headers()
+  const userId = headerList.get('x-user-id')
+  const userEmail = headerList.get('x-user-email')
 
-  if (!user) redirect('/login')
+  if (!userId) redirect('/login')
 
-  const { data: profile } = await supabaseAdmin
-    .from('users')
-    .select('managed_restaurant_id, is_super_admin')
-    .eq('id', user.id)
-    .single()
+  const profile = await getCachedUserProfile(userId)
 
   if (profile?.is_super_admin) {
     return (
@@ -35,11 +61,7 @@ export default async function SettingsPage() {
     )
   }
 
-  const { data: restaurant } = await supabaseAdmin
-    .from('restaurants')
-    .select('id, name, address, cuisine_type, opening_hours, logo_url, followup_enabled, followup_policy, followup_discount_percent, followup_custom_template, recovery_emails_enabled, winback_emails_enabled')
-    .eq('id', profile.managed_restaurant_id)
-    .single()
+  const restaurant = await getCachedRestaurantSettings(profile.managed_restaurant_id)
 
   if (!restaurant) redirect('/')
 
@@ -81,7 +103,7 @@ export default async function SettingsPage() {
             <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">Account</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Update your login email and password.</p>
           </div>
-          <AccountSettings currentEmail={user.email ?? ""} />
+          <AccountSettings currentEmail={userEmail ?? ""} />
 
         </div>
       </main>

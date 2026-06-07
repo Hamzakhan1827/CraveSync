@@ -2,25 +2,36 @@ import Link from 'next/link'
 import { LogOut } from 'lucide-react'
 import { CraveSyncMark } from './CraveSyncLogo'
 import { SidebarNav } from './SidebarNav'
-import { createClient } from '@/utils/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { signOut } from '@/app/actions/auth'
+import { headers } from 'next/headers'
+import { unstable_cache } from 'next/cache'
+
+const getCachedSidebarProfile = unstable_cache(
+  async (userId: string) => {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('is_super_admin, managed_restaurant_id, restaurants(name)')
+      .eq('id', userId)
+      .single()
+    if (error) throw error
+    return data
+  },
+  ['sidebar-profile'],
+  { revalidate: 60, tags: ['profile'] }
+)
 
 export async function Sidebar() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const headerList = await headers()
+  const userId = headerList.get('x-user-id')
   
   let displayName = "Loading...";
   let planName = "Accessing...";
   let initial = "B";
   let isSuperAdmin = false;
 
-  if (user) {
-    const { data: profile } = await supabaseAdmin
-      .from('users')
-      .select('is_super_admin, managed_restaurant_id, restaurants(name)')
-      .eq('id', user.id)
-      .single();
+  if (userId) {
+    const profile = await getCachedSidebarProfile(userId)
 
     isSuperAdmin = profile?.is_super_admin ?? false;
 

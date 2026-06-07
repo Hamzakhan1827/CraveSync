@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
-import { createClient } from "@/utils/supabase/server";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { headers } from "next/headers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,8 +26,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const headerList = await headers()
+  const userId = headerList.get('x-user-id')
+  const user = userId ? { id: userId } : null
 
   return (
     <html

@@ -1,24 +1,89 @@
 import { Header } from '@/components/Header'
-import { createClient } from '@/utils/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { MenuManager } from '@/components/MenuManager'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { headers } from 'next/headers'
+import { unstable_cache } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+const getCachedUserProfile = unstable_cache(
+  async (userId: string) => {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('managed_restaurant_id, is_super_admin')
+      .eq('id', userId)
+      .single()
+    if (error) throw error
+    return data
+  },
+  ['user-profile'],
+  { revalidate: 60, tags: ['profile'] }
+)
+
+const getCachedRestaurantName = unstable_cache(
+  async (restaurantId: string) => {
+    const { data, error } = await supabaseAdmin
+      .from('restaurants')
+      .select('name')
+      .eq('id', restaurantId)
+      .single()
+    if (error) throw error
+    return data?.name || 'Unknown Restaurant'
+  },
+  ['restaurant-name'],
+  { revalidate: 300, tags: ['restaurant'] }
+)
+
+const getCachedRestaurantMenuItemsAndCats = unstable_cache(
+  async (restaurantId: string) => {
+    const [
+      { data: menuItems, error: err1 },
+      { data: categories, error: err2 }
+    ] = await Promise.all([
+      supabaseAdmin
+        .from('menu_items')
+        .select(`
+          id,
+          name,
+          price,
+          description,
+          image_url,
+          category_id,
+          menu_categories!inner (
+            name,
+            restaurant_id
+          )
+        `)
+        .eq('menu_categories.restaurant_id', restaurantId)
+        .order('created_at', { ascending: false }),
+
+      supabaseAdmin
+        .from('menu_categories')
+        .select('id, name')
+        .eq('restaurant_id', restaurantId)
+    ])
+
+    if (err1 || err2) throw new Error('Failed to fetch menu items')
+    return {
+      menuItems: menuItems ?? [],
+      categories: categories ?? []
+    }
+  },
+  ['restaurant-menu-data'],
+  { revalidate: 5, tags: ['menu'] }
+)
 
 export default async function RestaurantMenuPage({ params }: { params: Promise<{ restaurantId: string }> }) {
   const resolvedParams = await params;
   const restaurantId = resolvedParams.restaurantId;
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const headerList = await headers()
+  const userId = headerList.get('x-user-id')
 
-  if (!user) return <div>Access Denied</div>;
+  if (!userId) redirect('/login')
 
-  const { data: profile } = await supabaseAdmin
-    .from('users')
-    .select('managed_restaurant_id, is_super_admin')
-    .eq('id', user.id)
-    .single();
+  const profile = await getCachedUserProfile(userId)
 
   if (!profile?.is_super_admin && profile?.managed_restaurant_id !== restaurantId) {
     return (
@@ -28,36 +93,9 @@ export default async function RestaurantMenuPage({ params }: { params: Promise<{
     )
   }
 
-  // Fetch specific restaurant info to display name
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('name')
-    .eq('id', restaurantId)
-    .single();
+  const restaurantName = await getCachedRestaurantName(restaurantId)
 
-  // Fetch Menu Items
-  const { data: menuItems } = await supabase
-    .from('menu_items')
-    .select(`
-      id,
-      name,
-      price,
-      description,
-      image_url,
-      category_id,
-      menu_categories!inner (
-        name,
-        restaurant_id
-      )
-    `)
-    .eq('menu_categories.restaurant_id', restaurantId)
-    .order('created_at', { ascending: false });
-
-  // Fetch Categories for the dropdown
-  const { data: categories } = await supabase
-    .from('menu_categories')
-    .select('id, name')
-    .eq('restaurant_id', restaurantId);
+  const { menuItems, categories } = await getCachedRestaurantMenuItemsAndCats(restaurantId)
 
   // Format menuItems to match MenuItem type (flattening menu_categories array if needed)
   const formattedMenuItems = menuItems?.map(item => ({
@@ -76,7 +114,7 @@ export default async function RestaurantMenuPage({ params }: { params: Promise<{
 
   return (
     <>
-      <Header title={`Menu Manager: ${restaurant?.name || 'Restaurant'}`} />
+      <Header title={`Menu Manager: ${restaurantName}`} />
       <main className="flex-1 overflow-auto p-8">
         <div className="max-w-7xl mx-auto">
           {profile?.is_super_admin && (
@@ -88,7 +126,7 @@ export default async function RestaurantMenuPage({ params }: { params: Promise<{
               initialItems={formattedMenuItems} 
               categories={categories || []} 
               restaurantId={restaurantId} 
-              restaurantName={restaurant?.name}
+              restaurantName={restaurantName}
             />
         </div>
       </main>

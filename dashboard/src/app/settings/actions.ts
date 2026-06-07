@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { revalidatePath } from 'next/cache'
 
 type FollowupPolicy = 'apology_only' | 'discount_offer' | 'free_item' | 'custom_message'
 
@@ -40,6 +41,7 @@ export async function saveFollowupPolicy(payload: {
     .eq('id', payload.restaurantId)
 
   if (error) return { error: error.message }
+  revalidatePath('/settings')
   return { success: true }
 }
 
@@ -71,5 +73,6 @@ export async function saveCampaignSettings(payload: {
     .eq('id', payload.restaurantId)
 
   if (error) return { error: error.message }
+  revalidatePath('/settings')
   return { success: true }
 }
