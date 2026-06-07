@@ -45,14 +45,14 @@ export async function Sidebar() {
   return (
     <>
       {/* Spacer for layout so content doesn't get hidden behind the collapsed sidebar */}
-      <div className="w-16 hidden md:block shrink-0" />
-      
-      <aside className="fixed left-0 top-0 h-screen w-16 hover:w-64 group z-[100] hidden md:flex flex-col bg-white/95 dark:bg-slate-900/60 backdrop-blur-2xl border-r border-slate-200 dark:border-slate-800/50 shadow-[0_0_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden">
-        
+      <div className="w-20 hidden md:block shrink-0" />
+
+      <aside className="fixed left-0 top-0 h-screen w-20 hover:w-64 group z-[100] hidden md:flex flex-col bg-white/95 dark:bg-slate-900/60 backdrop-blur-2xl border-r border-slate-200 dark:border-slate-800/50 shadow-[0_0_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden">
+
         {/* Logo area — mark stays fixed at left, text slides in beside it */}
-        <div className="h-16 flex items-center shrink-0 border-b border-slate-200/50 dark:border-slate-800/50 pl-[17px]">
+        <div className="h-16 flex items-center shrink-0 border-b border-slate-200/50 dark:border-slate-800/50 pl-[14px]">
           <Link href="/" className="flex items-center gap-[10px] min-w-max">
-            <CraveSyncMark size={38} className="shrink-0" />
+            <CraveSyncMark size={48} className="shrink-0" />
             <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100 whitespace-nowrap font-bold tracking-tight text-slate-900 dark:text-slate-200" style={{ fontSize: 24, letterSpacing: '-0.02em' }}>
               Crave<span className="text-emerald-500 dark:text-emerald-400">Sync</span>
             </span>
